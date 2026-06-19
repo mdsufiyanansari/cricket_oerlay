@@ -1,343 +1,195 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect, useState } from "react";
 
-import {
-  motion,
-  AnimatePresence,
-} from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-import {
-  useMatch,
-} from "../context/MatchContext";
+import { useMatch } from "../context/MatchContext";
 
-import OverlayTopBar
-from "../components/OverlayTopBar";
+import OverlayTopBar from "../components/OverlayTopBar";
 
-import RecentBalls
-from "../components/RecentBalls";
+import RecentBalls from "../components/RecentBalls";
 
-import SponsorBanner
-from "../components/SponsorBanner";
+import SponsorBanner from "../components/SponsorBanner";
 
-import WicketPopup
-from "../components/WicketPopup";
+import WicketPopup from "../components/WicketPopup";
 
-import BoundaryPopup
-from "../components/BoundaryPopup";
+import BoundaryPopup from "../components/BoundaryPopup";
 
-import NewBatsmanOverlay
-from "../components/NewBatsmanOverlay";
+import NewBatsmanOverlay from "../components/NewBatsmanOverlay";
 
 export default function Overlay() {
+  const { matchData } = useMatch();
 
-  const { matchData } =
-    useMatch();
-
-  const match =
-    matchData?.match || {};
+  const match = matchData?.match || {};
 
   // =========================
   // PROFESSIONAL POPUP MANAGER
   // =========================
 
-  const [
-    activePopup,
-    setActivePopup
-  ] = useState(null);
+  const [activePopup, setActivePopup] = useState(null);
 
-  const [
-    popupData,
-    setPopupData
-  ] = useState({});
+  const [popupData, setPopupData] = useState({});
 
-  const [
-    lastProcessedEvent,
-    setLastProcessedEvent
-  ] = useState(null);
+  const [lastProcessedEvent, setLastProcessedEvent] = useState(null);
 
-  const timeoutRef =
-    React.useRef(null);
+  const timeoutRef = React.useRef(null);
 
-  const lastWicketIdRef =
-    React.useRef(null);
+  const lastWicketIdRef = React.useRef(null);
 
-  const lastBoundaryRef =
-    React.useRef(null);
+  const lastBoundaryRef = React.useRef(null);
 
-  const lastBatsmanRef =
-    React.useRef(null);
+  const lastBatsmanRef = React.useRef(null);
 
   // =========================
   // POPUP PRIORITY MANAGER
   // =========================
 
   useEffect(() => {
-
     if (timeoutRef.current) {
-      clearTimeout(
-        timeoutRef.current
-      );
+      clearTimeout(timeoutRef.current);
     }
 
     // PRIORITY 1: MATCH FINISHED
     if (
-      match.status ===
-      "finished" &&
-      lastProcessedEvent !==
-      "match_finished"
+      match.status === "finished" &&
+      lastProcessedEvent !== "match_finished"
     ) {
+      setLastProcessedEvent("match_finished");
 
-      setLastProcessedEvent(
-        "match_finished"
-      );
-
-      setActivePopup(
-        "match_finished"
-      );
+      setActivePopup("match_finished");
 
       setPopupData({
-        result:
-          match.result,
+        result: match.result,
       });
 
       return;
-
     }
 
     // PRIORITY 2: WICKET
-    if (
-      match.lastWicket &&
-      match.status !== "finished"
-    ) {
+    if (match.lastWicket && match.status !== "finished") {
+      const wicketId = match.lastWicket.id;
 
-      const wicketId =
-        match.lastWicket.id;
+      if (wicketId !== lastWicketIdRef.current) {
+        lastWicketIdRef.current = wicketId;
 
-      if (
-        wicketId !==
-        lastWicketIdRef.current
-      ) {
+        setLastProcessedEvent(`wicket_${wicketId}`);
 
-        lastWicketIdRef.current =
-          wicketId;
-
-        setLastProcessedEvent(
-          `wicket_${wicketId}`
-        );
-
-        setActivePopup(
-          "wicket"
-        );
+        setActivePopup("wicket");
 
         setPopupData({
-          outPlayer:
-            match.lastWicket
-              ?.outPlayer,
-          newPlayer:
-            match.batsman,
+          outPlayer: match.lastWicket?.outPlayer,
+          newPlayer: match.batsman,
         });
 
-        timeoutRef.current =
-          setTimeout(() => {
-
-            setActivePopup(
-              null
-            );
-
-          }, 800);
+        timeoutRef.current = setTimeout(() => {
+          setActivePopup(null);
+        }, 800);
 
         return;
-
       }
-
     }
 
     // PRIORITY 3: NEW BATSMAN
     if (
-      match.lastEvent?.type ===
-      "new-batsman" &&
+      match.lastEvent?.type === "new-batsman" &&
       match.lastNewBatsman &&
       match.status !== "finished"
     ) {
+      const batsmanKey = `${match.lastNewBatsman?.name}_${match.lastEvent.type}`;
 
-      const batsmanKey =
-        `${match.lastNewBatsman?.name}_${match.lastEvent.type}`;
+      if (batsmanKey !== lastBatsmanRef.current) {
+        lastBatsmanRef.current = batsmanKey;
 
-      if (
-        batsmanKey !==
-        lastBatsmanRef.current
-      ) {
+        setLastProcessedEvent(batsmanKey);
 
-        lastBatsmanRef.current =
-          batsmanKey;
-
-        setLastProcessedEvent(
-          batsmanKey
-        );
-
-        setActivePopup(
-          "new_batsman"
-        );
+        setActivePopup("new_batsman");
 
         setPopupData({
-          player:
-            match.lastNewBatsman,
+          player: match.lastNewBatsman,
         });
 
-        timeoutRef.current =
-          setTimeout(() => {
-
-            setActivePopup(
-              null
-            );
-
-          }, 800);
+        timeoutRef.current = setTimeout(() => {
+          setActivePopup(null);
+        }, 800);
 
         return;
-
       }
-
     }
 
     // PRIORITY 4: BOUNDARY (FOUR/SIX)
     if (
-      (match.lastEvent?.type ===
-        "four" ||
-      match.lastEvent?.type ===
-        "six") &&
+      (match.lastEvent?.type === "four" || match.lastEvent?.type === "six") &&
       match.status !== "finished"
     ) {
+      const boundaryKey = `${match.lastEvent?.type}_${match.lastEvent?.text}`;
 
-      const boundaryKey =
-        `${match.lastEvent?.type}_${match.lastEvent?.text}`;
+      if (boundaryKey !== lastBoundaryRef.current) {
+        lastBoundaryRef.current = boundaryKey;
 
-      if (
-        boundaryKey !==
-        lastBoundaryRef.current
-      ) {
+        setLastProcessedEvent(boundaryKey);
 
-        lastBoundaryRef.current =
-          boundaryKey;
-
-        setLastProcessedEvent(
-          boundaryKey
-        );
-
-        setActivePopup(
-          "boundary"
-        );
+        setActivePopup("boundary");
 
         setPopupData({
-          type:
-            match.lastEvent
-              ?.type === "four"
-              ? "FOUR"
-              : "SIX",
+          type: match.lastEvent?.type === "four" ? "FOUR" : "SIX",
         });
 
-        timeoutRef.current =
-          setTimeout(() => {
-
-            setActivePopup(
-              null
-            );
-
-          }, 800);
+        timeoutRef.current = setTimeout(() => {
+          setActivePopup(null);
+        }, 800);
 
         return;
-
       }
-
     }
-
   }, [
     match.status,
     match.lastWicket?.id,
     match.lastEvent?.type,
     match.lastEvent?.text,
-    match.lastNewBatsman
-      ?.name,
+    match.lastNewBatsman?.name,
   ]);
 
   // CLEANUP ON UNMOUNT
   useEffect(() => {
-
     return () => {
-
-      if (
-        timeoutRef.current
-      ) {
-
-        clearTimeout(
-          timeoutRef.current
-        );
-
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-
     };
-
   }, []);
 
   // =========================
   // TEAM
   // =========================
 
-  const battingTeam =
+  const battingTeam = match.innings === 1 ? match.team1 : match.team2;
 
-    match.innings === 1
-
-      ? match.team1
-
-      : match.team2;
-
-  const bowlingTeam =
-
-    match.innings === 1
-
-      ? match.team2
-
-      : match.team1;
+  const bowlingTeam = match.innings === 1 ? match.team2 : match.team1;
 
   // =========================
   // OBS SAFE
   // =========================
 
   useEffect(() => {
+    document.body.style.background = "transparent";
 
-    document.body.style.background =
-      "transparent";
+    document.body.style.margin = "0";
 
-    document.body.style.margin =
-      "0";
+    document.body.style.padding = "0";
 
-    document.body.style.padding =
-      "0";
-
-    document.body.style.overflow =
-      "hidden";
+    document.body.style.overflow = "hidden";
 
     return () => {
+      document.body.style.background = "";
 
-      document.body.style.background =
-        "";
+      document.body.style.margin = "";
 
-      document.body.style.margin =
-        "";
+      document.body.style.padding = "";
 
-      document.body.style.padding =
-        "";
-
-      document.body.style.overflow =
-        "";
-
+      document.body.style.overflow = "";
     };
-
   }, []);
 
   return (
-
     <div
       className="
         relative
@@ -349,11 +201,9 @@ export default function Overlay() {
         justify-center
       "
       style={{
-        backgroundColor:
-          "transparent",
+        backgroundColor: "transparent",
       }}
     >
-
       {/* SAFE AREA */}
 
       <div
@@ -367,38 +217,27 @@ export default function Overlay() {
           overflow-hidden
         "
       >
-
         {/* TOP BAR */}
 
         <OverlayTopBar
-
-          status={
-            match.status ||
-            "live"
-          }
-
+          status={match.status || "live"}
           matchInfo="IPL Cricket Live"
-
         />
 
         {/* MAIN SCOREBAR */}
 
         <motion.div
-
           initial={{
             opacity: 0,
             y: -80,
           }}
-
           animate={{
             opacity: 1,
             y: 0,
           }}
-
           transition={{
             duration: 0.4,
           }}
-
           className="
             absolute
             bottom-2
@@ -413,7 +252,6 @@ export default function Overlay() {
             z-40
           "
         >
-
           <div
             className="
               overflow-hidden
@@ -427,7 +265,6 @@ export default function Overlay() {
               shadow-[0_0_60px_rgba(0,0,0,0.7)]
             "
           >
-
             {/* TOP */}
 
             <div
@@ -439,7 +276,6 @@ export default function Overlay() {
                 md:h-[150px]
               "
             >
-
               {/* TEAM 1 */}
 
               <div
@@ -459,7 +295,6 @@ export default function Overlay() {
                   py-4
                 "
               >
-
                 <div
                   className="
                     w-14
@@ -475,28 +310,18 @@ export default function Overlay() {
                     bg-black/20
                   "
                 >
-
                   <img
-
-                    src={
-                      battingTeam?.logo ||
-
-                      "https://i.imgur.com/6VBx3io.png"
-                    }
-
+                    src={battingTeam?.logo || "https://i.imgur.com/6VBx3io.png"}
                     alt="team"
-
                     className="
                       w-full
                       h-full
                       object-cover
                     "
                   />
-
                 </div>
 
                 <div>
-
                   <p
                     className="
                       text-cyan-300
@@ -506,9 +331,7 @@ export default function Overlay() {
                       sm:text-xs
                     "
                   >
-
                     TEAM 1
-
                   </p>
 
                   <h1
@@ -523,15 +346,9 @@ export default function Overlay() {
                       leading-none
                     "
                   >
-
-                    {
-                      battingTeam?.name
-                    }
-
+                    {battingTeam?.name}
                   </h1>
-
                 </div>
-
               </div>
 
               {/* SCORE */}
@@ -548,7 +365,6 @@ export default function Overlay() {
                   py-5
                 "
               >
-
                 <div
                   className="
                     bg-red-600
@@ -564,9 +380,7 @@ export default function Overlay() {
                     animate-pulse
                   "
                 >
-
                   ● LIVE
-
                 </div>
 
                 <p
@@ -578,13 +392,7 @@ export default function Overlay() {
                     tracking-[2px]
                   "
                 >
-
-                  {match.innings === 1
-
-                    ? "FIRST INNINGS"
-
-                    : "SECOND INNINGS"}
-
+                  {match.innings === 1 ? "FIRST INNINGS" : "SECOND INNINGS"}
                 </p>
 
                 <h1
@@ -598,17 +406,7 @@ export default function Overlay() {
                     leading-none
                   "
                 >
-
-                  {
-                    battingTeam?.score || 0
-                  }
-
-                  /
-
-                  {
-                    battingTeam?.wickets || 0
-                  }
-
+                  {battingTeam?.score || 0}/{battingTeam?.wickets || 0}
                 </h1>
 
                 <p
@@ -621,17 +419,7 @@ export default function Overlay() {
                     mt-2
                   "
                 >
-
-                  {
-                    battingTeam?.overs || 0
-                  }
-
-                  .
-
-                  {
-                    battingTeam?.balls || 0
-                  }
-
+                  {battingTeam?.overs || 0}.{battingTeam?.balls || 0}
                   <span
                     className="
                       text-gray-400
@@ -641,15 +429,9 @@ export default function Overlay() {
                       ml-2
                     "
                   >
-
-                    /
-                    {
-                      match.matchOvers || 0
-                    }
+                    /{match.matchOvers || 0}
                     OVERS
-
                   </span>
-
                 </p>
 
                 <p
@@ -662,13 +444,8 @@ export default function Overlay() {
                     md:text-2xl
                   "
                 >
-
-                  RR {
-                    match.runRate || 0
-                  }
-
+                  RR {match.runRate || 0}
                 </p>
-
               </div>
 
               {/* TEAM 2 */}
@@ -691,13 +468,11 @@ export default function Overlay() {
                   py-4
                 "
               >
-
                 <div
                   className="
                     text-right
                   "
                 >
-
                   <p
                     className="
                       text-red-200
@@ -707,9 +482,7 @@ export default function Overlay() {
                       sm:text-xs
                     "
                   >
-
                     TEAM 2
-
                   </p>
 
                   <h1
@@ -724,13 +497,8 @@ export default function Overlay() {
                       leading-none
                     "
                   >
-
-                    {
-                      bowlingTeam?.name
-                    }
-
+                    {bowlingTeam?.name}
                   </h1>
-
                 </div>
 
                 <div
@@ -748,28 +516,17 @@ export default function Overlay() {
                     bg-black/20
                   "
                 >
-
                   <img
-
-                    src={
-                      bowlingTeam?.logo ||
-
-                      "https://i.imgur.com/6VBx3io.png"
-                    }
-
+                    src={bowlingTeam?.logo || "https://i.imgur.com/6VBx3io.png"}
                     alt="team"
-
                     className="
                       w-full
                       h-full
                       object-cover
                     "
                   />
-
                 </div>
-
               </div>
-
             </div>
 
             {/* LOWER */}
@@ -785,7 +542,6 @@ export default function Overlay() {
                 border-white/10
               "
             >
-
               {/* STRIKER */}
 
               <div
@@ -796,7 +552,6 @@ export default function Overlay() {
                   border-white/10
                 "
               >
-
                 <p
                   className="
                     text-white
@@ -807,11 +562,7 @@ export default function Overlay() {
                     font-black
                   "
                 >
-
-                  {
-                    match.batsman?.name
-                  }
-
+                  {match.batsman?.name}
                 </p>
 
                 <div
@@ -821,7 +572,6 @@ export default function Overlay() {
                     mt-2
                   "
                 >
-
                   <h1
                     className="
                       text-white
@@ -831,11 +581,7 @@ export default function Overlay() {
                       font-black
                     "
                   >
-
-                    {
-                      match.batsman?.runs || 0
-                    }
-
+                    {match.batsman?.runs || 0}
                   </h1>
 
                   <p
@@ -846,17 +592,9 @@ export default function Overlay() {
                       md:text-2xl
                     "
                   >
-
-                    (
-                    {
-                      match.batsman?.balls || 0
-                    }
-                    )
-
+                    ({match.batsman?.balls || 0})
                   </p>
-
                 </div>
-
               </div>
 
               {/* NON STRIKER */}
@@ -869,7 +607,6 @@ export default function Overlay() {
                   border-white/10
                 "
               >
-
                 <p
                   className="
                     text-white
@@ -880,11 +617,7 @@ export default function Overlay() {
                     font-black
                   "
                 >
-
-                  {
-                    match.nonStriker?.name
-                  }
-
+                  {match.nonStriker?.name}
                 </p>
 
                 <div
@@ -894,7 +627,6 @@ export default function Overlay() {
                     mt-2
                   "
                 >
-
                   <h1
                     className="
                       text-white
@@ -904,11 +636,7 @@ export default function Overlay() {
                       font-black
                     "
                   >
-
-                    {
-                      match.nonStriker?.runs || 0
-                    }
-
+                    {match.nonStriker?.runs || 0}
                   </h1>
 
                   <p
@@ -919,17 +647,9 @@ export default function Overlay() {
                       md:text-2xl
                     "
                   >
-
-                    (
-                    {
-                      match.nonStriker?.balls || 0
-                    }
-                    )
-
+                    ({match.nonStriker?.balls || 0})
                   </p>
-
                 </div>
-
               </div>
 
               {/* PARTNERSHIP */}
@@ -943,7 +663,6 @@ export default function Overlay() {
                   text-center
                 "
               >
-
                 <p
                   className="
                     text-gray-400
@@ -953,9 +672,7 @@ export default function Overlay() {
                     sm:text-sm
                   "
                 >
-
                   Partnership
-
                 </p>
 
                 <h1
@@ -968,11 +685,7 @@ export default function Overlay() {
                     mt-2
                   "
                 >
-
-                  {
-                    match.partnership?.runs || 0
-                  }
-
+                  {match.partnership?.runs || 0}
                 </h1>
 
                 <p
@@ -982,15 +695,8 @@ export default function Overlay() {
                     sm:text-xl
                   "
                 >
-
-                  (
-                  {
-                    match.partnership?.balls || 0
-                  }
-                  )
-
+                  ({match.partnership?.balls || 0})
                 </p>
-
               </div>
 
               {/* BOWLER */}
@@ -1001,7 +707,6 @@ export default function Overlay() {
                   md:p-5
                 "
               >
-
                 <div
                   className="
                     flex
@@ -1009,9 +714,7 @@ export default function Overlay() {
                     items-center
                   "
                 >
-
                   <div>
-
                     <p
                       className="
                         text-white
@@ -1022,11 +725,7 @@ export default function Overlay() {
                         font-black
                       "
                     >
-
-                      {
-                        match.bowler?.name
-                      }
-
+                      {match.bowler?.name}
                     </p>
 
                     <p
@@ -1037,11 +736,8 @@ export default function Overlay() {
                         sm:text-sm
                       "
                     >
-
                       Bowler
-
                     </p>
-
                   </div>
 
                   <div
@@ -1049,7 +745,6 @@ export default function Overlay() {
                       text-right
                     "
                   >
-
                     <h1
                       className="
                         text-white
@@ -1059,21 +754,9 @@ export default function Overlay() {
                         font-black
                       "
                     >
-
-                      {
-                        match.bowler?.wickets || 0
-                      }
-
-                      -
-
-                      {
-                        match.bowler?.runs || 0
-                      }
-
+                      {match.bowler?.wickets || 0}-{match.bowler?.runs || 0}
                     </h1>
-
                   </div>
-
                 </div>
 
                 {/* RECENT */}
@@ -1084,55 +767,31 @@ export default function Overlay() {
                     overflow-x-auto
                   "
                 >
-
-                  <RecentBalls
-
-                    balls={
-                      match.recentBalls ||
-                      []
-                    }
-
-                  />
-
+                  <RecentBalls balls={match.recentBalls || []} />
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         </motion.div>
 
         {/* PROFESSIONAL POPUP MANAGER - SINGLE ACTIVE POPUP */}
 
-        <AnimatePresence
-          mode="wait"
-        >
-
-          {activePopup ===
-            "match_finished" && (
-
+        <AnimatePresence mode="wait">
+          {activePopup === "match_finished" && (
             <motion.div
-
               key="match_finished"
-
               initial={{
                 opacity: 0,
               }}
-
               animate={{
                 opacity: 1,
               }}
-
               exit={{
                 opacity: 0,
               }}
-
               transition={{
                 duration: 0.3,
               }}
-
               className="
                 absolute
                 inset-0
@@ -1144,7 +803,6 @@ export default function Overlay() {
                 p-4
               "
             >
-
               <div
                 className="
                   bg-gradient-to-r
@@ -1161,7 +819,6 @@ export default function Overlay() {
                   text-center
                 "
               >
-
                 <h1
                   className="
                     text-white
@@ -1171,9 +828,7 @@ export default function Overlay() {
                     font-black
                   "
                 >
-
                   MATCH FINISHED
-
                 </h1>
 
                 <p
@@ -1186,73 +841,32 @@ export default function Overlay() {
                     mt-6
                   "
                 >
-
-                  {
-                    popupData.result ||
-                    "MATCH FINISHED"
-                  }
-
+                  {popupData.result || "MATCH FINISHED"}
                 </p>
-
               </div>
-
             </motion.div>
-
           )}
 
-          {activePopup ===
-            "wicket" && (
-
+          {activePopup === "wicket" && (
             <WicketPopup
-
               key="wicket"
-
               show={true}
-
-              outPlayer={
-                popupData.outPlayer
-              }
-
-              newPlayer={
-                popupData.newPlayer
-              }
-
+              outPlayer={popupData.outPlayer}
+              newPlayer={popupData.newPlayer}
             />
-
           )}
 
-          {activePopup ===
-            "new_batsman" && (
-
+          {activePopup === "new_batsman" && (
             <NewBatsmanOverlay
-
               key="new_batsman"
-
               show={true}
-
-              player={
-                popupData.player
-              }
-
+              player={popupData.player}
             />
-
           )}
 
-          {activePopup ===
-            "boundary" && (
-
-            <BoundaryPopup
-
-              key="boundary"
-
-              show={true}
-
-              type={popupData.type}
-
-            />
-
+          {activePopup === "boundary" && (
+            <BoundaryPopup key="boundary" show={true} type={popupData.type} />
           )}
-
         </AnimatePresence>
 
         {/* SPONSOR */}
@@ -1265,8 +879,7 @@ export default function Overlay() {
             right-0
           "
         >
-
-          <SponsorBanner
+          {/* <SponsorBanner
 
             sponsors={[
               "Star Sports",
@@ -1274,14 +887,27 @@ export default function Overlay() {
               "Vivo",
             ]}
 
-          />
-
+          /> */}
+         <div className="w-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 border-y-4 border-yellow-300 shadow-[0_0_20px_rgba(255,165,0,0.8)] overflow-hidden">
+  <marquee
+    scrollamount="8"
+    className="py-3 text-white font-black text-xl md:text-2xl tracking-wider uppercase"
+  >
+    🏆 BHIKHANPUR PREMIUM LEAGUE LIVE 🏆
+    &nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;
+    ⚡ Powered By Digital Promotion ⚡
+    &nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;
+    📞 Call: 8252001148
+    &nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;
+    🔔 Subscribe Now
+    &nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;
+    👍 Like • Share • Comment
+    &nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;
+    🏏 Live Cricket Streaming 🏏
+  </marquee>
+</div>
         </div>
-
       </div>
-
     </div>
-
   );
-
 }
