@@ -585,7 +585,7 @@ const handleRun =
           true
         );
 
-      }, 2500);
+      }, 200);
 
     }
 
@@ -1070,7 +1070,7 @@ const handleBye =
             true
           );
 
-        }, 2500);
+        }, 200);
 
       }
 
@@ -1370,7 +1370,7 @@ if (
             true
           );
 
-        }, 500);
+        }, 200);
 
       }
 
@@ -1609,6 +1609,8 @@ updatedMatch.status = "innings_break";
 
     };
 
+
+
     let updatedMatch = {
 
       ...match,
@@ -1720,6 +1722,8 @@ updatedMatch.batsman = {
 
   };
 
+  setMatch(updatedMatch);
+await saveToFirebase(updatedMatch);
    
 
  if (
@@ -1761,7 +1765,7 @@ setMatch(
           true
         );
 
-      }, 2500);
+      }, 200);
 
     } else {
 
@@ -1771,7 +1775,7 @@ setMatch(
           true
         );
 
-      }, 800);
+      }, 200);
 
     }
 
@@ -2103,7 +2107,7 @@ finalMatch.status = "innings_break";
           true
         );
 
-      }, 2500);
+      }, 200);
 
     } else {
 
@@ -2113,7 +2117,7 @@ finalMatch.status = "innings_break";
           true
         );
 
-      }, 800);
+      }, 200);
 
     }
 
@@ -2472,7 +2476,7 @@ updatedMatch.result =
           true
         );
 
-      }, 500);
+      }, 200);
 
     };
 

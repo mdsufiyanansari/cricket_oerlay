@@ -146,7 +146,7 @@ export default function Overlay() {
               null
             );
 
-          }, 5000);
+          }, 800);
 
         return;
 
@@ -193,7 +193,7 @@ export default function Overlay() {
               null
             );
 
-          }, 4000);
+          }, 800);
 
         return;
 
@@ -244,7 +244,7 @@ export default function Overlay() {
               null
             );
 
-          }, 3000);
+          }, 800);
 
         return;
 
